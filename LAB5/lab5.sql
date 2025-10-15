@@ -1,3 +1,4 @@
+--Zholdassali Amir 24B031787
 --Task 1.1
 CREATE TABLE employees(
     employee_id SERIAL PRIMARY KEY,
@@ -295,6 +296,7 @@ INSERT INTO order_details (order_id, product_id, quantity, unit_price) VALUES
 (4, 1, 1, 1200.00),
 (4, 4, 1, 90.00),
 (5, 4, 1, 90.00);
+
 
 
 
