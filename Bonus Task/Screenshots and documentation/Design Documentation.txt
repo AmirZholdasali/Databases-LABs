@@ -1,0 +1,19 @@
+Project: Bonus Banking System - Design Documentation
+Student ID: 24B031787
+
+1. ARCHITECTURAL DECISIONS
+   - JSONB Audit Log: I utilized JSONB for the `audit_log` table (old_values/new_values) instead of fixed columns. This ensures the system is future-proof; if table schemas change, the audit log triggers do not need to be rewritten, maintaining flexibility.
+   - Strict Typing: Custom ENUM types (`txn_type`, `txn_status`) were used to ensure data integrity at the database level, preventing invalid transaction states.
+
+2. CONCURRENCY & ACID COMPLIANCE
+   - Deadlock Prevention: In the `process_transfer` procedure, I implemented a strict locking order strategy (always lock the lower Account ID first). This mathematically guarantees that circular wait conditions (deadlocks) cannot occur between two concurrent transfers.
+   - Row-Level Locking: I used `SELECT ... FOR UPDATE` to lock specific account rows during transaction processing. This isolates the data so no other transaction can modify the balance while a check is in progress.
+   - Advisory Locks: For the batch salary processing, I used `pg_try_advisory_xact_lock(company_id)`. This prevents two payroll batches from running for the same company simultaneously without locking the entire table.
+
+3. SECURITY
+   - Security Barrier Views: The `suspicious_activity_view` utilizes `WITH (security_barrier = true)`. This ensures that the WHERE clause inside the view (filtering high-value transactions) is applied *before* any user-supplied filters, preventing potential data leakage through side-channel attacks.
+
+4. PERFORMANCE OPTIMIZATION
+   - Hash Indexing: A HASH index was applied to the `currency` column because it has low cardinality and is only queried using equality checks (`=`), making Hash faster than B-Tree in this specific case.
+   - Partial Indexing: The `idx_active_accs` only indexes accounts where `is_active = TRUE`. Since 95% of queries target active accounts, this reduces index size and maintenance overhead significantly.
+   - GIN Indexing: A GIN index was applied to the `audit_log` JSONB column to allow efficient searching of specific keys (e.g., finding all logs related to a specific sender IBAN) within the JSON structure.
